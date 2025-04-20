@@ -7,6 +7,7 @@ import { toast } from 'react-hot-toast';
 
 interface BioCardProps {
   username: string;
+  bio: string;
   profileImage?: string;
   socialLinks: {
     discord: string;
@@ -22,7 +23,7 @@ interface BioCardProps {
   }[];
 }
 
-const BioCard = ({ username, profileImage, socialLinks, tracks }: BioCardProps) => {
+const BioCard = ({ username, bio, profileImage, socialLinks, tracks }: BioCardProps) => {
   // Card tilt effect state
   const cardRef = useRef<HTMLDivElement>(null);
   
