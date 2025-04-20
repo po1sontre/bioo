@@ -15,6 +15,7 @@
     "@fortawesome/react-fontawesome": "^0.2.2",
     "@types/howler": "^2.2.12",
     "@types/three": "^0.175.0",
+    "framer-motion": "^12.7.4",
     "gsap": "^3.12.7",
     "howler": "^2.2.4",
     "next": "15.3.1",
