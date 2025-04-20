@@ -131,6 +131,34 @@ const BioCard = ({ username, profileImage, socialLinks, tracks }: BioCardProps) 
   const [currentTrackIndex, setCurrentTrackIndex] = useState(0); // Start with "wounds" (index 0)
   const currentTrack = trackList[currentTrackIndex];
   
+  // Load initial track on component mount
+  useEffect(() => {
+    const loadAndPlayInitialTrack = async () => {
+      if (audioRef.current) {
+        try {
+          setIsLoading(true);
+          audioRef.current.src = currentTrack.file;
+          await audioRef.current.load();
+          
+          // Try to autoplay
+          const playPromise = audioRef.current.play();
+          if (playPromise !== undefined) {
+            await playPromise;
+            setIsPlaying(true);
+          }
+        } catch (error) {
+          console.log('Autoplay was prevented:', error);
+          // Don't show error toast for autoplay prevention
+          setIsPlaying(false);
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadAndPlayInitialTrack();
+  }, []);
+
   // Function to safely play audio
   const playAudio = async () => {
     const audio = audioRef.current;
