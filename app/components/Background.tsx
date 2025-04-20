@@ -12,21 +12,17 @@ interface ParticleSystem {
 
 const Background = () => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [isLoaded, setIsLoaded] = useState(false);
-  // Store animation state in refs to prevent issues with closure and stale state
-  const mouseRef = useRef(new THREE.Vector2());
-  const targetMouseRef = useRef(new THREE.Vector2());
-  const mouseActiveRef = useRef(false);
-  const animationRef = useRef<number | null>(null);
-  const frameCountRef = useRef(0);
-  const isVisibleRef = useRef(true);
   const sceneRef = useRef<THREE.Scene | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
-  const isInitializedRef = useRef(false);
-
-  // Force re-mount logic
+  const animationRef = useRef<number | null>(null);
+  const mouseRef = useRef<THREE.Vector2>(new THREE.Vector2());
+  const targetMouseRef = useRef<THREE.Vector2>(new THREE.Vector2());
+  const mouseActiveRef = useRef<boolean>(false);
+  const isVisibleRef = useRef<boolean>(true);
+  const isInitializedRef = useRef<boolean>(false);
+  const [isLoaded, setIsLoaded] = useState(false);
   const [mountKey, setMountKey] = useState(0);
-  
+
   const resetAnimation = () => {
     console.log("Forcing animation reset");
     setMountKey(prev => prev + 1);
@@ -34,12 +30,9 @@ const Background = () => {
 
   useEffect(() => {
     if (!containerRef.current) return;
+    
+    // Only initialize if not already initialized
     if (isInitializedRef.current) {
-      console.log("Already initialized, cleaning up previous instance first");
-      // Let previous cleanup complete before reinitializing
-      setTimeout(() => {
-        isInitializedRef.current = false;
-      }, 100);
       return;
     }
     
@@ -97,7 +90,7 @@ const Background = () => {
         alpha: true, 
         antialias: quality !== 'low',
         powerPreference: 'high-performance',
-        canvas: testCanvas // Reuse the canvas we already tested
+        canvas: testCanvas
       });
       
       rendererRef.current = renderer;
@@ -106,10 +99,6 @@ const Background = () => {
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, quality === 'low' ? 1 : 2));
       
       if (containerRef.current) {
-        // Remove any existing canvas first
-        while (containerRef.current.firstChild) {
-          containerRef.current.removeChild(containerRef.current.firstChild);
-        }
         containerRef.current.appendChild(renderer.domElement);
       }
       
@@ -261,9 +250,6 @@ const Background = () => {
     // Mouse interaction setup with more reliable event handling
     const windowHalf = new THREE.Vector2(window.innerWidth / 2, window.innerHeight / 2);
     let idleAnimationTime = 0;
-    let lastFrameTime = performance.now();
-    let frameCount = 0;
-    let framesSinceLastRender = 0;
     
     // Improved, more reliable mouse tracking
     const onMouseMove = (event: MouseEvent) => {
@@ -363,8 +349,6 @@ const Background = () => {
         return;
       }
 
-      frameCountRef.current++;
-      
       const delta = clock.getDelta();
       
       // Idle animation when no mouse activity
@@ -400,95 +384,12 @@ const Background = () => {
       animationRef.current = requestAnimationFrame(animate);
     };
 
-    // Visibility change handler
-    const handleVisibilityChange = () => {
-      isVisibleRef.current = document.visibilityState === 'visible';
-      
-      if (isVisibleRef.current && !animationRef.current) {
-        console.log('Page is now visible, restarting animation...');
-        clock.start(); // Reset the clock
-        animate(0);
-      }
-    };
-
-    // Auto-restart animation if it stops
-    const checkAnimationActive = () => {
-      const currentFrame = frameCountRef.current;
-      
-      // Only restart if page is visible and animation has stopped
-      if (isVisibleRef.current && !animationRef.current) {
-        console.log('Animation stopped, restarting...');
-        clock.start(); // Reset the clock
-        animate(0);
-      }
-      
-      // Check if frames are advancing
-      setTimeout(() => {
-        if (frameCountRef.current === currentFrame && isVisibleRef.current) {
-          console.log('Animation frozen, restarting...');
-          if (animationRef.current) {
-            cancelAnimationFrame(animationRef.current);
-            animationRef.current = null;
-          }
-          clock.start(); // Reset the clock
-          animate(0);
-        }
-      }, 1000);
-    };
-
-    // Set up visibility change listener
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
     // Start animation
     animate(0);
-    
-    // Check animation every 5 seconds
-    const animationCheckInterval = setInterval(checkAnimationActive, 5000);
 
-    // Enhanced resize handler
-    const onResize = () => {
-      try {
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-        if (renderer) {
-          renderer.setSize(window.innerWidth, window.innerHeight);
-          renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        }
-        windowHalf.set(window.innerWidth / 2, window.innerHeight / 2);
-      } catch (e) {
-        console.error("Error handling resize:", e);
-      }
-    };
-
-    window.addEventListener('resize', onResize);
-
-    // WebGL context lost handler
-    const handleContextLost = (event: Event) => {
-      console.warn("WebGL context lost, forcing reset");
-      event.preventDefault();
-      resetAnimation();
-    };
-    
-    // Add context lost listener to the renderer's canvas
-    if (renderer && renderer.domElement) {
-      renderer.domElement.addEventListener('webglcontextlost', handleContextLost, false);
-    }
-
-    // Robust cleanup
+    // Cleanup function
     return () => {
       console.log("Cleaning up Three.js resources");
-      clearInterval(animationCheckInterval);
-      
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('mousemove', onMouseMove);
-      window.removeEventListener('touchmove', onTouchMove);
-      window.removeEventListener('touchstart', onTouchMove);
-      window.removeEventListener('mouseleave', onMouseLeave);
-      window.removeEventListener('resize', onResize);
-      
-      if (renderer && renderer.domElement) {
-        renderer.domElement.removeEventListener('webglcontextlost', handleContextLost);
-      }
       
       if (animationRef.current !== null) {
         cancelAnimationFrame(animationRef.current);
@@ -529,8 +430,9 @@ const Background = () => {
       // Clear refs
       sceneRef.current = null;
       rendererRef.current = null;
+      isInitializedRef.current = false;
     };
-  }, [mountKey]);
+  }, [mountKey, isLoaded]);
 
   // Add a manual reset button that we'll hide in the corner
   return (

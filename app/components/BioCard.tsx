@@ -62,12 +62,14 @@ const BioCard = ({ username, bio, profileImage, socialLinks, tracks }: BioCardPr
   const currentTrack = trackList[currentTrackIndex];
   
   // Function to safely play audio
-  const playAudio = async () => {
+  const playAudio = async (file: string) => {
     const audio = audioRef.current;
     if (!audio || isLoading) return;
 
     try {
       setIsLoading(true);
+      audio.src = file;
+      await audio.load();
       await audio.play();
       setIsPlaying(true);
     } catch (error) {
@@ -94,7 +96,7 @@ const BioCard = ({ username, bio, profileImage, socialLinks, tracks }: BioCardPr
     if (isPlaying) {
       pauseAudio();
     } else {
-      await playAudio();
+      await playAudio(currentTrack.file);
     }
   };
 
@@ -111,7 +113,7 @@ const BioCard = ({ username, bio, profileImage, socialLinks, tracks }: BioCardPr
         setIsLoading(true);
         audioRef.current.src = trackList[newIndex].file;
         await audioRef.current.load();
-        await playAudio();
+        await playAudio(trackList[newIndex].file);
       } catch (error) {
         console.error('Error playing audio:', error);
         setIsPlaying(false);
@@ -134,7 +136,7 @@ const BioCard = ({ username, bio, profileImage, socialLinks, tracks }: BioCardPr
         setIsLoading(true);
         audioRef.current.src = trackList[newIndex].file;
         await audioRef.current.load();
-        await playAudio();
+        await playAudio(trackList[newIndex].file);
       } catch (error) {
         console.error('Error playing audio:', error);
         setIsPlaying(false);
@@ -159,7 +161,7 @@ const BioCard = ({ username, bio, profileImage, socialLinks, tracks }: BioCardPr
         audio.src = currentTrack.file;
         await audio.load();
         if (isPlaying) {
-          await playAudio();
+          await playAudio(currentTrack.file);
         }
       } catch (error) {
         console.error('Error loading audio:', error);
@@ -194,7 +196,7 @@ const BioCard = ({ username, bio, profileImage, socialLinks, tracks }: BioCardPr
       audio.removeEventListener('durationchange', handleDurationChange);
       audio.removeEventListener('ended', handleEnded);
     };
-  }, [currentTrackIndex]);
+  }, [currentTrack.file, isPlaying, playAudio, volume]);
   
   // Update audio volume when volume changes
   useEffect(() => {
