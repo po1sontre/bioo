@@ -1,0 +1,372 @@
+'use client'
+
+import { useState, useRef, useEffect } from 'react';
+import { FaDiscord, FaGithub, FaSpotify, FaYoutube, FaInstagram, FaPlay, FaPause, FaStepBackward, FaStepForward, FaVolumeUp } from 'react-icons/fa';
+import Image from 'next/image';
+import { toast } from 'react-hot-toast';
+
+interface BioCardProps {
+  username: string;
+  bio: string;
+  profileImage?: string;
+  socialLinks: {
+    discord: string;
+    github: string;
+    spotify: string;
+    youtube: string;
+    instagram: string;
+  };
+  tracks?: {
+    name: string;
+    artist: string;
+    file: string;
+  }[];
+}
+
+const BioCard = ({ username, bio, profileImage, socialLinks, tracks }: BioCardProps) => {
+  // Card tilt effect state
+  const cardRef = useRef<HTMLDivElement>(null);
+  
+  // Audio player state
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [volume, setVolume] = useState(0.5);
+  const [isLoading, setIsLoading] = useState(false);
+  
+  // Update the track information to use your actual MP3 files
+  const defaultTracks = [
+    {
+      name: "wounds",
+      artist: "lucille",
+      file: "/wounds-lucille.mp3"
+    },
+    {
+      name: "cats in the cold",
+      artist: "mage tears",
+      file: "/cats in the cold-mage tears.mp3"
+    },
+    {
+      name: "toothache",
+      artist: "boccmet",
+      file: "/toothache-boccmet.mp3"
+    }
+  ];
+
+  // Use provided tracks or default tracks
+  const trackList = tracks || defaultTracks;
+
+  // Use a state to keep track of the current track
+  const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
+  const currentTrack = trackList[currentTrackIndex];
+  
+  // Function to safely play audio
+  const playAudio = async () => {
+    const audio = audioRef.current;
+    if (!audio || isLoading) return;
+
+    try {
+      setIsLoading(true);
+      await audio.play();
+      setIsPlaying(true);
+    } catch (error) {
+      console.error('Error playing audio:', error);
+      setIsPlaying(false);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Function to safely pause audio
+  const pauseAudio = () => {
+    const audio = audioRef.current;
+    if (!audio || isLoading) return;
+
+    audio.pause();
+    setIsPlaying(false);
+  };
+
+  // Control music player
+  const togglePlay = async () => {
+    if (isLoading) return;
+    
+    if (isPlaying) {
+      pauseAudio();
+    } else {
+      await playAudio();
+    }
+  };
+
+  // Function to go to next track
+  const nextTrack = async () => {
+    if (isLoading) return;
+
+    const newIndex = (currentTrackIndex + 1) % trackList.length;
+    setCurrentTrackIndex(newIndex);
+    setIsPlaying(false);
+    
+    if (audioRef.current) {
+      try {
+        setIsLoading(true);
+        audioRef.current.src = trackList[newIndex].file;
+        await audioRef.current.load();
+        await playAudio();
+      } catch (error) {
+        console.error('Error playing audio:', error);
+        setIsPlaying(false);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  };
+  
+  // Function to go to previous track
+  const prevTrack = async () => {
+    if (isLoading) return;
+
+    const newIndex = (currentTrackIndex - 1 + trackList.length) % trackList.length;
+    setCurrentTrackIndex(newIndex);
+    setIsPlaying(false);
+    
+    if (audioRef.current) {
+      try {
+        setIsLoading(true);
+        audioRef.current.src = trackList[newIndex].file;
+        await audioRef.current.load();
+        await playAudio();
+      } catch (error) {
+        console.error('Error playing audio:', error);
+        setIsPlaying(false);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  };
+  
+  // Handle audio events
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    
+    // Set initial volume
+    audio.volume = volume;
+    
+    // Load the current track
+    const loadTrack = async () => {
+      try {
+        setIsLoading(true);
+        audio.src = currentTrack.file;
+        await audio.load();
+        if (isPlaying) {
+          await playAudio();
+        }
+      } catch (error) {
+        console.error('Error loading audio:', error);
+        setIsPlaying(false);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadTrack();
+    
+    const handleTimeUpdate = () => {
+      setCurrentTime(audio.currentTime);
+    };
+    
+    const handleDurationChange = () => {
+      setDuration(audio.duration);
+    };
+    
+    const handleEnded = () => {
+      nextTrack();
+    };
+    
+    // Add event listeners
+    audio.addEventListener('timeupdate', handleTimeUpdate);
+    audio.addEventListener('durationchange', handleDurationChange);
+    audio.addEventListener('ended', handleEnded);
+    
+    // Clean up event listeners
+    return () => {
+      audio.removeEventListener('timeupdate', handleTimeUpdate);
+      audio.removeEventListener('durationchange', handleDurationChange);
+      audio.removeEventListener('ended', handleEnded);
+    };
+  }, [currentTrackIndex]);
+  
+  // Update audio volume when volume changes
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    
+    audio.volume = volume;
+  }, [volume]);
+
+  // Update tilt effect based on mouse position
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!cardRef.current) return;
+    
+    const rect = cardRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+    
+    const rotateX = ((y - centerY) / centerY) * -3;
+    const rotateY = ((x - centerX) / centerX) * 3;
+    
+    cardRef.current.style.transform = `
+      perspective(1000px)
+      rotateX(${rotateX}deg)
+      rotateY(${rotateY}deg)
+    `;
+  };
+  
+  const handleMouseLeave = () => {
+    if (!cardRef.current) return;
+    cardRef.current.style.transform = `
+      perspective(1000px)
+      rotateX(0deg)
+      rotateY(0deg)
+    `;
+  };
+  
+  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!audioRef.current || !duration) return;
+    
+    const rect = e.currentTarget.getBoundingClientRect();
+    const clickPosition = (e.clientX - rect.left) / rect.width;
+    const newTime = clickPosition * duration;
+    
+    audioRef.current.currentTime = newTime;
+    setCurrentTime(newTime);
+  };
+  
+  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setVolume(parseFloat(e.target.value));
+  };
+  
+  // Format time display (mm:ss)
+  const formatTime = (seconds: number) => {
+    if (!seconds || isNaN(seconds)) return "0:00";
+    
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+  };
+  
+  return (
+    <div className="container flex items-center justify-center mx-auto px-4 z-10">
+      <div className="card-container">
+        <div
+          ref={cardRef}
+          className="card"
+          onMouseMove={handleMouseMove}
+          onMouseLeave={handleMouseLeave}
+        >
+          <div className="profile">
+            <div className="profile-icon">
+              {profileImage ? (
+                <Image 
+                  src={profileImage} 
+                  alt={username} 
+                  width={100} 
+                  height={100}
+                  className="rounded-full object-cover"
+                />
+              ) : (
+                <span className="text-pink-500">♡</span>
+              )}
+            </div>
+            <h1 className="username">{username}</h1>
+            <p className="bio">{bio}</p>
+            
+            <div className="social-links">
+              <button 
+                className="social-icon discord" 
+                onClick={() => {
+                  navigator.clipboard.writeText('po1sontre');
+                  toast.success('Discord username copied!', {
+                    duration: 2000,
+                    position: 'bottom-center',
+                    style: {
+                      background: 'rgba(255, 102, 196, 0.9)',
+                      color: '#fff',
+                      borderRadius: '8px',
+                      padding: '8px 16px',
+                      fontSize: '14px',
+                      boxShadow: '0 4px 12px rgba(255, 102, 196, 0.3)',
+                    },
+                  });
+                }}
+                style={{ '--index': 0 } as React.CSSProperties}
+              >
+                <FaDiscord />
+              </button>
+              <a href={socialLinks.github} className="social-icon github" target="_blank" rel="noopener noreferrer" style={{ '--index': 1 } as React.CSSProperties}>
+                <FaGithub />
+              </a>
+              <a href={socialLinks.spotify} className="social-icon spotify" target="_blank" rel="noopener noreferrer" style={{ '--index': 2 } as React.CSSProperties}>
+                <FaSpotify />
+              </a>
+              <a href={socialLinks.youtube} className="social-icon youtube" target="_blank" rel="noopener noreferrer" style={{ '--index': 3 } as React.CSSProperties}>
+                <FaYoutube />
+              </a>
+              <a href={socialLinks.instagram} className="social-icon instagram" target="_blank" rel="noopener noreferrer" style={{ '--index': 4 } as React.CSSProperties}>
+                <FaInstagram />
+              </a>
+            </div>
+          </div>
+          
+          <div className="music-player">
+            {/* Hidden audio element for playing the music */}
+            <audio ref={audioRef} />
+            
+            <div className="volume-control">
+              <span className="opacity-70 text-xs"><FaVolumeUp /></span>
+              <input 
+                type="range"
+                min="0"
+                max="1"
+                step="0.01"
+                value={volume}
+                onChange={handleVolumeChange}
+                className="slider volume-slider"
+                style={{ '--value': `${volume * 100}%` } as React.CSSProperties}
+              />
+            </div>
+            
+            <div className="time-control">
+              <span className="current-time">{formatTime(currentTime)}</span>
+              <div className="progress-bar" onClick={handleProgressClick}>
+                <div className="progress" style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%` }}></div>
+              </div>
+              <span className="total-time">{formatTime(duration)}</span>
+            </div>
+            
+            <div className="player-controls">
+              <button className="control-btn" onClick={prevTrack}>
+                <FaStepBackward />
+              </button>
+              <button className="control-btn play-pause" onClick={togglePlay}>
+                {isPlaying ? <FaPause /> : <FaPlay />}
+              </button>
+              <button className="control-btn" onClick={nextTrack}>
+                <FaStepForward />
+              </button>
+            </div>
+            
+            <div className="track-info">
+              <div className="track-name">{currentTrack.name}</div>
+              <div className="track-artist">{currentTrack.artist}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default BioCard; 
