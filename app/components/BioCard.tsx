@@ -7,7 +7,6 @@ import { toast } from 'react-hot-toast';
 
 interface BioCardProps {
   username: string;
-  bio: string;
   profileImage?: string;
   socialLinks: {
     discord: string;
@@ -23,7 +22,7 @@ interface BioCardProps {
   }[];
 }
 
-const BioCard = ({ username, bio, profileImage, socialLinks, tracks }: BioCardProps) => {
+const BioCard = ({ username, profileImage, socialLinks, tracks }: BioCardProps) => {
   // Card tilt effect state
   const cardRef = useRef<HTMLDivElement>(null);
   
@@ -129,7 +128,7 @@ const BioCard = ({ username, bio, profileImage, socialLinks, tracks }: BioCardPr
   const trackList = tracks || defaultTracks;
 
   // Use a state to keep track of the current track
-  const [currentTrackIndex, setCurrentTrackIndex] = useState(2); // Start with "wounds" (index 2)
+  const [currentTrackIndex, setCurrentTrackIndex] = useState(0); // Start with "wounds" (index 0)
   const currentTrack = trackList[currentTrackIndex];
   
   // Function to safely play audio

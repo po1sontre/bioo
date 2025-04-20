@@ -24,10 +24,10 @@ export default function Home() {
     },
     tracks: [
       { name: "wounds", artist: "lucille", file: "/wounds-lucille.mp3" },
+      { name: "point blank range", artist: "lucille", file: "/point blank range - lucille.mp3" },
       { name: "cats in the cold", artist: "mage tears", file: "/cats in the cold-mage tears.mp3" },
       { name: "toothache", artist: "boccmet", file: "/toothache-boccmet.mp3" },
       { name: "nothing less, nothing more", artist: "lucille", file: "/nothing less, nothing more - lucille.mp3" },
-      { name: "point blank range", artist: "lucille", file: "/point blank range - lucille.mp3" },
       { name: "word vomit", artist: "Jades", file: "/word vomit - Jades.mp3" },
       { name: "tell me your regrets", artist: "Jades", file: "/tell me your regrets - Jades.mp3" },
       { name: "breakdowns", artist: "lucille", file: "/breakdowns - lucille.mp3" }
@@ -41,7 +41,6 @@ export default function Home() {
       <FloatingElements />
       <BioCard 
         username={userProfile.username}
-        bio={userProfile.bio}
         profileImage={userProfile.profileImage}
         socialLinks={userProfile.socialLinks}
         tracks={userProfile.tracks}
