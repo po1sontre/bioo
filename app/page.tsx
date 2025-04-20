@@ -17,7 +17,8 @@ export default function Home() {
     profileImage: "/pfp2.jpg",
     socialLinks: {
       discord: "https://discord.com/users/287608141191970817",
-      spotify: "https://open.spotify.com/user/po1sontre",
+      github: "https://github.com/po1sontre",
+      spotify: "https://open.spotify.com/user/31bb64trrbwinip6q743jyi32tmu",
       youtube: "https://www.youtube.com/@po1sontre",
       instagram: "https://instagram.com/po1sontre"
     },
