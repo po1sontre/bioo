@@ -7,7 +7,6 @@ import { toast } from 'react-hot-toast';
 
 interface BioCardProps {
   username: string;
-  bio: string;
   profileImage?: string;
   socialLinks: {
     discord: string;
@@ -23,7 +22,7 @@ interface BioCardProps {
   }[];
 }
 
-const BioCard = ({ username, bio, profileImage, socialLinks, tracks }: BioCardProps) => {
+const BioCard = ({ username, profileImage, socialLinks, tracks }: BioCardProps) => {
   // Card tilt effect state
   const cardRef = useRef<HTMLDivElement>(null);
   
@@ -34,7 +33,53 @@ const BioCard = ({ username, bio, profileImage, socialLinks, tracks }: BioCardPr
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(0.5);
   const [isLoading, setIsLoading] = useState(false);
-  
+
+  // Typewriter effect state
+  const [currentBio, setCurrentBio] = useState('');
+  const [currentBioIndex, setCurrentBioIndex] = useState(0);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [typingSpeed, setTypingSpeed] = useState(100);
+
+  // Multiple descriptions to cycle through
+  const descriptions = [
+    "loser!",
+    "Bastard!",
+    "no one here can love",
+    "music don't always help",
+    "end it im crazy",
+    "love my soul",
+    "he/him",
+    "forget you"
+  ];
+
+  // Typewriter effect
+  useEffect(() => {
+    const currentText = descriptions[currentBioIndex];
+    
+    if (!isDeleting && currentBio === currentText) {
+      // Pause at the end of typing
+      setTimeout(() => {
+        setIsDeleting(true);
+        setTypingSpeed(50);
+      }, 1500);
+    } else if (isDeleting && currentBio === '') {
+      // Move to next description after deleting
+      setIsDeleting(false);
+      setCurrentBioIndex((prev) => (prev + 1) % descriptions.length);
+      setTypingSpeed(100);
+    } else {
+      // Type or delete characters
+      const timeout = setTimeout(() => {
+        setCurrentBio(isDeleting 
+          ? currentText.substring(0, currentBio.length - 1)
+          : currentText.substring(0, currentBio.length + 1)
+        );
+      }, typingSpeed);
+
+      return () => clearTimeout(timeout);
+    }
+  }, [currentBio, currentBioIndex, isDeleting, typingSpeed]);
+
   // Update the track information to use your actual MP3 files
   const defaultTracks = [
     {
@@ -51,6 +96,31 @@ const BioCard = ({ username, bio, profileImage, socialLinks, tracks }: BioCardPr
       name: "toothache",
       artist: "boccmet",
       file: "/toothache-boccmet.mp3"
+    },
+    {
+      name: "nothing less, nothing more",
+      artist: "lucille",
+      file: "/nothing less, nothing more - lucille.mp3"
+    },
+    {
+      name: "point blank range",
+      artist: "lucille",
+      file: "/point blank range - lucille.mp3"
+    },
+    {
+      name: "word vomit",
+      artist: "Jades",
+      file: "/word vomit - Jades.mp3"
+    },
+    {
+      name: "tell me your regrets",
+      artist: "Jades",
+      file: "/tell me your regrets - Jades.mp3"
+    },
+    {
+      name: "breakdowns",
+      artist: "lucille",
+      file: "/breakdowns - lucille.mp3"
     }
   ];
 
@@ -58,28 +128,23 @@ const BioCard = ({ username, bio, profileImage, socialLinks, tracks }: BioCardPr
   const trackList = tracks || defaultTracks;
 
   // Use a state to keep track of the current track
-  const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
+  const [currentTrackIndex, setCurrentTrackIndex] = useState(2); // Start with "wounds" (index 2)
   const currentTrack = trackList[currentTrackIndex];
   
   // Function to safely play audio
-  const playAudio = async (file: string) => {
+  const playAudio = async () => {
     const audio = audioRef.current;
     if (!audio || isLoading) return;
 
     try {
       setIsLoading(true);
-      console.log('Attempting to play audio file:', file);
-      
-      // Only set src and load if it's different from current src
-      if (audio.src !== file) {
-        audio.src = file;
+      if (!audio.src) {
+        audio.src = currentTrack.file;
         await audio.load();
       }
-      
       const playPromise = audio.play();
       if (playPromise !== undefined) {
         await playPromise;
-        console.log('Audio started playing successfully');
         setIsPlaying(true);
       }
     } catch (error) {
@@ -110,7 +175,7 @@ const BioCard = ({ username, bio, profileImage, socialLinks, tracks }: BioCardPr
     if (isPlaying) {
       pauseAudio();
     } else {
-      await playAudio(currentTrack.file);
+      await playAudio();
     }
   };
 
@@ -127,7 +192,9 @@ const BioCard = ({ username, bio, profileImage, socialLinks, tracks }: BioCardPr
         setIsLoading(true);
         audioRef.current.src = trackList[newIndex].file;
         await audioRef.current.load();
-        await playAudio(trackList[newIndex].file);
+        if (isPlaying) {
+          await playAudio();
+        }
       } catch (error) {
         console.error('Error playing audio:', error);
         setIsPlaying(false);
@@ -150,7 +217,9 @@ const BioCard = ({ username, bio, profileImage, socialLinks, tracks }: BioCardPr
         setIsLoading(true);
         audioRef.current.src = trackList[newIndex].file;
         await audioRef.current.load();
-        await playAudio(trackList[newIndex].file);
+        if (isPlaying) {
+          await playAudio();
+        }
       } catch (error) {
         console.error('Error playing audio:', error);
         setIsPlaying(false);
@@ -167,28 +236,6 @@ const BioCard = ({ username, bio, profileImage, socialLinks, tracks }: BioCardPr
     
     // Set initial volume
     audio.volume = volume;
-    
-    // Load the current track
-    const loadTrack = async () => {
-      try {
-        setIsLoading(true);
-        console.log('Loading track:', currentTrack.file);
-        audio.src = currentTrack.file;
-        await audio.load();
-        console.log('Track loaded successfully');
-      } catch (error) {
-        console.error('Error loading audio:', error);
-        toast.error('Failed to load audio file', {
-          duration: 3000,
-          position: 'bottom-center',
-        });
-        setIsPlaying(false);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    loadTrack();
     
     const handleTimeUpdate = () => {
       setCurrentTime(audio.currentTime);
@@ -213,7 +260,7 @@ const BioCard = ({ username, bio, profileImage, socialLinks, tracks }: BioCardPr
       audio.removeEventListener('durationchange', handleDurationChange);
       audio.removeEventListener('ended', handleEnded);
     };
-  }, [currentTrack.file, volume]);
+  }, [volume]);
   
   // Update audio volume when volume changes
   useEffect(() => {
@@ -222,6 +269,11 @@ const BioCard = ({ username, bio, profileImage, socialLinks, tracks }: BioCardPr
     
     audio.volume = volume;
   }, [volume]);
+
+  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newVolume = parseFloat(e.target.value);
+    setVolume(newVolume);
+  };
 
   // Update tilt effect based on mouse position
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -263,10 +315,6 @@ const BioCard = ({ username, bio, profileImage, socialLinks, tracks }: BioCardPr
     setCurrentTime(newTime);
   };
   
-  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setVolume(parseFloat(e.target.value));
-  };
-  
   // Format time display (mm:ss)
   const formatTime = (seconds: number) => {
     if (!seconds || isNaN(seconds)) return "0:00";
@@ -300,7 +348,9 @@ const BioCard = ({ username, bio, profileImage, socialLinks, tracks }: BioCardPr
               )}
             </div>
             <h1 className="username">{username}</h1>
-            <p className="bio">{bio}</p>
+            <p className="bio">
+              <span className="bio-text">{currentBio}</span>
+            </p>
             
             <div className="social-links">
               <button 
@@ -343,6 +393,11 @@ const BioCard = ({ username, bio, profileImage, socialLinks, tracks }: BioCardPr
             {/* Hidden audio element for playing the music */}
             <audio ref={audioRef} />
             
+            <div className="track-info">
+              <div className="track-name">{currentTrack.name}</div>
+              <div className="track-artist">{currentTrack.artist}</div>
+            </div>
+            
             <div className="volume-control">
               <span className="opacity-70 text-xs"><FaVolumeUp /></span>
               <input 
@@ -375,11 +430,6 @@ const BioCard = ({ username, bio, profileImage, socialLinks, tracks }: BioCardPr
               <button className="control-btn" onClick={nextTrack}>
                 <FaStepForward />
               </button>
-            </div>
-            
-            <div className="track-info">
-              <div className="track-name">{currentTrack.name}</div>
-              <div className="track-artist">{currentTrack.artist}</div>
             </div>
           </div>
         </div>
