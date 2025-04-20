@@ -68,12 +68,26 @@ const BioCard = ({ username, bio, profileImage, socialLinks, tracks }: BioCardPr
 
     try {
       setIsLoading(true);
-      audio.src = file;
-      await audio.load();
-      await audio.play();
-      setIsPlaying(true);
+      console.log('Attempting to play audio file:', file);
+      
+      // Only set src and load if it's different from current src
+      if (audio.src !== file) {
+        audio.src = file;
+        await audio.load();
+      }
+      
+      const playPromise = audio.play();
+      if (playPromise !== undefined) {
+        await playPromise;
+        console.log('Audio started playing successfully');
+        setIsPlaying(true);
+      }
     } catch (error) {
       console.error('Error playing audio:', error);
+      toast.error('Failed to play audio. Please try again.', {
+        duration: 3000,
+        position: 'bottom-center',
+      });
       setIsPlaying(false);
     } finally {
       setIsLoading(false);
@@ -158,13 +172,16 @@ const BioCard = ({ username, bio, profileImage, socialLinks, tracks }: BioCardPr
     const loadTrack = async () => {
       try {
         setIsLoading(true);
+        console.log('Loading track:', currentTrack.file);
         audio.src = currentTrack.file;
         await audio.load();
-        if (isPlaying) {
-          await playAudio(currentTrack.file);
-        }
+        console.log('Track loaded successfully');
       } catch (error) {
         console.error('Error loading audio:', error);
+        toast.error('Failed to load audio file', {
+          duration: 3000,
+          position: 'bottom-center',
+        });
         setIsPlaying(false);
       } finally {
         setIsLoading(false);
@@ -196,7 +213,7 @@ const BioCard = ({ username, bio, profileImage, socialLinks, tracks }: BioCardPr
       audio.removeEventListener('durationchange', handleDurationChange);
       audio.removeEventListener('ended', handleEnded);
     };
-  }, [currentTrack.file, isPlaying, playAudio, volume]);
+  }, [currentTrack.file, volume]);
   
   // Update audio volume when volume changes
   useEffect(() => {
